@@ -49,7 +49,7 @@ class AbstractAsyncBatchQueue(ABC):
 @dataclass
 class AsyncBatch(AbstractAsyncBatchQueue):
     
-    name: str | None 
+    name: str | None = None
     max_size: int = field(default=128)
     max_delay: float = field(default=10.0)  ## in milliseconds
     input_dtype: np.dtype | str = field(default=np.float64)

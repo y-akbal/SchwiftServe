@@ -1,0 +1,22 @@
+model:
+  name: LogisticRegression
+  version: "1.0.0"
+  description: A LogisticRegression
+
+  backend: sklearn
+  model_args:
+    model_file: model.pkl
+
+  input:
+    type: array
+    shape: [-1,5]
+    dtype: float32 ## or refer might be an option!!!
+
+  output:
+    type: array
+    shape: [-1, 1]
+    dtype: int64 ## or refer might be an option!!!
+
+  preferred_batch_size: [16, 32, 64, 128] ## preferred batch sizes for batching
+  max_batch_delay_ms: 10 ## maximum delay to wait for forming a batch
+  rush_batch_size: 256 ## choose based on system capacity, active when forward pass queue is linear

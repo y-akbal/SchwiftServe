@@ -1,0 +1,25 @@
+model:
+  name: mlp_10
+  version: "1.0.0"
+  description: A classifier for raw log data using scikit-learn.
+
+  backend: onnx
+  caching: true
+  model_args:
+    model_file: mlp_regressor.onnx
+    device: cpu
+
+  
+  input:
+    type: array
+    shape: [-1, 4]
+    dtype: float32
+
+  output:
+    type: array
+    shape: [-1, 1]
+    dtype: int64
+
+  preferred_batch_size: [1024] ## preferred batch sizes for batching
+  max_batch_delay_ms: 5 ## maximum delay to wait for forming a batch
+  rush_batch_size: 256 ## choose based on system capacity, active when forward pass queue is linear

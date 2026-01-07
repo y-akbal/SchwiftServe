@@ -1,0 +1,25 @@
+model:
+  name: RawLogClassifier_10
+  version: "1.0.0"
+  description: A classifier for raw log data using scikit-learn.
+
+  backend: python
+  model_args:
+    class: models.python_backend.model:multiply
+    kwargs:
+      name: RawLogClassifier_1
+      compile: false
+  
+  input:
+    type: array
+    shape: [-1, 128]
+    dtype: float32
+
+  output:
+    type: array
+    shape: [-1, 128]
+    dtype: float32
+
+  preferred_batch_size: [256] ## preferred batch sizes for batching
+  max_batch_delay_ms: 10 ## maximum delay to wait for forming a batch
+  rush_batch_size: 256 ## choose based on system capacity, active when forward pass queue is linear

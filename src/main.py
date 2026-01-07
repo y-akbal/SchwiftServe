@@ -19,7 +19,7 @@ from src.metrics import InferenceMetrics
 
 ## --- ## --- ##
 load_dotenv()
-#######  DOMESTIC and NATIONAL TRITON INFERENCE SERVER #########
+#######  DOMESTIC and NATIONAL Ccc TRITON cCC INFERENCE SERVER #########
 PORT = int(os.getenv("PORT", 8005))
 MAX_WORKERS = int(os.getenv("MAX_ML_WORKERS", 4))
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", 32))

@@ -58,6 +58,8 @@ class AsyncBackPressure:
     async def release(self) -> None:
         if self.config.strategy == BackPressureStrategy.SEMAPHORE:
             self.semaphore.release()
+        elif self.config.strategy == BackPressureStrategy.REJECT:
+            self.semaphore.release()
         elif self.config.strategy == BackPressureStrategy.QUEUE:
             try:
                 await self.queue.get()
@@ -87,7 +89,7 @@ class AsyncBackPressure:
     
     @property
     def current_load(self) -> int:
-        if self.config.strategy == BackPressureStrategy.SEMAPHORE:
+        if self.config.strategy in (BackPressureStrategy.SEMAPHORE, BackPressureStrategy.REJECT):
             return self.config.max_concurrent - self.semaphore._value
         return 0
     

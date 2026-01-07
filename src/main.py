@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Any, List, Tuple, Dict
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 import numpy as np
 from pydantic import BaseModel
@@ -15,7 +15,7 @@ from src.utilities import yamlUtilities, ValidateSignature, ModelLoader
 from src.circuit_breaker import AsyncCircuitBreaker
 from src.back_pressure import AsyncBackPressure, BackPressureConfig
 from src.metrics import InferenceMetrics
-
+from src.rate_limiting import RateLimiter
 
 ## --- ## --- ##
 load_dotenv()
@@ -30,6 +30,8 @@ QUEUE_N = int(os.getenv("BATCHER_QUEUE_N", 32))
 MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", 1024))
 PREDICT_TIMEOUT = int(os.getenv("PREDICT_TIMEOUT_SECONDS", 15))
 RECOVERY_TIMEOUT = int(os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", 30))
+MAX_REQUESTS = int(os.getenv("MAX_REQUESTS", 250))
+REQUESTS_PERIOD = int(os.getenv("REQUESTS_PERIOD_SECONDS", 60))
 ####################################################################
   
 logging.basicConfig(filename=os.path.join(LOG_DIR, "ml_inference_api.log"), 
@@ -52,8 +54,10 @@ async def lifespan(app: FastAPI):
             queue_size=QUEUE_N
         )
     )
+    #ok we need something to clear stuff and collect garbage, maybe a periodic task?
     app.state.metrics = InferenceMetrics()
     #app.state.circuit_breakers = {model_name: AsyncCircuitBreaker(name=f"circuit_breaker_{model_name}") for model_name in models.keys()}
+    app.state.rate_limiter = RateLimiter(max_requests=MAX_REQUESTS, period=REQUESTS_PERIOD)
     app.state.model_forward_pass_tasks = {}
     app.state.PROCESS_POOL = ThreadPoolExecutor(max_workers=MAX_WORKERS)
     app.state.BATCHED_POOL = ThreadPoolExecutor(max_workers=2*MAX_WORKERS)
@@ -67,6 +71,7 @@ async def lifespan(app: FastAPI):
             logging.debug(f"Created forward pass task for model {model_name}")
         except Exception as e:
             logging.error(f"Failed to create forward pass task for model {model_name}: {e}")
+    await app.state.rate_limiter.start() ## ok start the rate limiter job for garbage collection
     ## We are ready to serve        
     logging.debug(f"Queues {app.state.model_queues}")
     logging.info(f"Model Server started with models: {list(models.keys())}")
@@ -78,6 +83,8 @@ async def lifespan(app: FastAPI):
         logging.info("Shutting down, waiting for tasks to complete.")
         app.state.PROCESS_POOL.shutdown(wait=True)
         app.state.BATCHED_POOL.shutdown(wait=True)
+        #app.state.back_pressure.close()
+        await app.state.rate_limiter.stop()
         for task in app.state.model_forward_pass_tasks.values():
             task.cancel()
         logging.info("I am dead now.")
@@ -169,6 +176,16 @@ def load_models(models_dir: str)->Tuple[Dict[str, Any], Dict[str, str]]:
                     logging.error(f"Error loading signature {model_path}: {e}")
                     raise e
     return models, signatures
+
+async def get_client_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
+
 
 # Health check endpoint
 @app.get("/")
@@ -267,7 +284,17 @@ class BatchedPredictionInput(BaseModel):
 
 @app.post("/predict_batched/{model_name}")
 async def predict_batched(model_name: str, 
-                          input_data: BatchedPredictionInput)-> Dict[str, Any]:
+                          input_data: BatchedPredictionInput,
+                          request: Request)-> Dict[str, Any]:
+    client_ip = await get_client_ip(request)
+    if model_name not in app.state.models:
+        logging.error(f"Model {model_name} not found for batched prediction")
+        raise HTTPException(status_code=404, detail="Model not found")
+    # Rate limiting check
+    is_allowed = await app.state.rate_limiter.is_allowed(client_ip)
+    if not is_allowed:
+        logging.warning(f"Rate limit exceeded for client {client_ip} on model {model_name}")
+        raise HTTPException(status_code=429, detail="Too Many Requests - Rate limit exceeded")
     async with app.state.back_pressure:  ## Limit concurrent batched predictions
         try:
             app.state.metrics.record_request(model_name=model_name, endpoint="predict_batched")

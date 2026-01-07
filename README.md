@@ -1,6 +1,6 @@
 ## SchwiftServe
 
-Alright we do inference but do it schwifty. 
+Alright we do inference but do it schwifty.
 
 A simple model serving for lite ML models. Batches requests, handles back pressure, circuit breaker stuff (not active). Keeps things from blowing up when too many requests come in.
 
@@ -16,7 +16,6 @@ A simple model serving for lite ML models. Batches requests, handles back pressu
 2. Put your model into models/model_name/{model_file + model_config.yaml}
 2. Run with docker: `docker compose up`
 
-
 ## Config
 
 Check the models/ folder for config files. Ya can tweak batch sizes and stuff there.
@@ -29,8 +28,8 @@ There are two endpoints, /predict or /predict_bathed, as usual for the batched y
 
 ## Testing
 
-Run tests with `pytest`. There's a load_test.go for stress testing.
+Run tests with `pytest`. There's a load_test.py for stress testing.
 
-Thats it, keep it simple!
+Thats it, keep it simple! 
 
 

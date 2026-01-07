@@ -1,0 +1,24 @@
+services:
+  schwiftserve:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    volumes:
+      - ./models:/opt/engine/models
+      - ./logs:/opt/engine/logs
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${PORT}/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      
+    restart: unless-stopped
+
+    
+

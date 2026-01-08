@@ -105,7 +105,9 @@ Run tests with `pytest`. There's a load_test.py for stress testing.
 
 ## TODO
 
-- 
+- During the rush hours implement circuit breaker properly, and activate double queueing 
+- Implement auth if needed
+
 
 Thats it, keep it simple!
 

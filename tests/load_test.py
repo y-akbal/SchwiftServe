@@ -28,7 +28,7 @@ RAMP_UP_DELAY = 0.5  # Seconds to stagger thread starts (avoids instant spike)
 
 # Thread-safe storage for results (using a lock to prevent race conditions)
 results_lock = Lock()
-results: List[Dict] = []
+results: list[dict] = []
 
 def send_request_sync(request_id: int = None) -> Dict:
     """Send a single synchronous HTTP request and measure its latency."""
@@ -61,7 +61,7 @@ def send_request_sync(request_id: int = None) -> Dict:
     }
     return result
 
-def worker_thread(worker_id: int) -> List[Dict]:
+def worker_thread(worker_id: int) -> list[Dict]:
     """Worker thread that sends requests with randomized delays to simulate load."""
     worker_results = []
     total_time = 0.0

@@ -231,7 +231,7 @@ class ModelLoader:
 class ONNXModelPredictor:
     def __init__(self, 
                 onnx_model_path: str,
-                providers:  List[str] | None = None, ## Later we can add more options here
+                providers:  list[str] | None = None, ## Later we can add more options here
                 session_options: Any | None = None, # 
                 warmup_iterations: int | None = None, ## if provided, run warmup
                 ) -> None:
@@ -258,7 +258,7 @@ class ONNXModelPredictor:
         return self.session.run(None, {self.input_names: input_data})[0]
 
     @property
-    def providers(self) -> List[str]:
+    def providers(self) -> list[str]:
         return self.session.get_providers()
     
     def __repr__(self) -> str:

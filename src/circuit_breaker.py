@@ -3,10 +3,10 @@ In model serving, a circuit breaker is a reliability pattern used to protect you
 Think of it like an electrical circuit breaker: when something goes wrong, it trips to prevent further damage.
 """
 import asyncio
-from enum import Enum
+from enum import Enum, StrEnum
 from datetime import datetime
 
-class CircuitBreakerState(Enum):
+class CircuitBreakerState(StrEnum):
     CLOSED = "closed"      
     OPEN = "open"          
     HALF_OPEN = "half_open" 

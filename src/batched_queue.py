@@ -16,7 +16,8 @@ import random
 import enum
 DEBUG_MODE = os.getenv("DEBUG_MODEL", "False").lower() in ("true", "1", "t")
 
-class dTypes(enum.Enum):
+@dataclass
+class dTypes:
     float32 = np.float32
     float64 = np.float64
     int32 = np.int32
@@ -48,7 +49,7 @@ class AbstractAsyncBatchQueue(ABC):
     
 @dataclass
 class AsyncBatch(AbstractAsyncBatchQueue):
-    
+
     name: str | None = None
     max_size: int = field(default=128)
     max_delay: float = field(default=10.0)  ## in milliseconds
@@ -62,9 +63,13 @@ class AsyncBatch(AbstractAsyncBatchQueue):
             self.name = f"AsyncBatch_{str(uuid.uuid4())[:8]}"
         ## Dtype casting
         if isinstance(self.input_dtype, str):
-            self.input_dtype = dTypes[self.input_dtype].value
+            self.input_dtype = getattr(dTypes, self.input_dtype).value
         if isinstance(self.output_dtype, str):
-            self.output_dtype = dTypes[self.output_dtype].value
+            self.output_dtype = getattr(dTypes, self.output_dtype).value
+        if self.input_dtype not in [np.float32, np.float64, np.int32, np.int64, np.uint8, np.uint16]:
+            raise ValueError(f"Unsupported input dtype: {self.input_dtype}")
+        if self.output_dtype not in [np.float32, np.float64, np.int32, np.int64, np.uint8, np.uint16]:
+            raise ValueError(f"Unsupported output dtype: {self.output_dtype}")
         
         self.lock: asyncio.Lock = asyncio.Lock() # to protect async access to the batch
         self._condition: asyncio.Condition = asyncio.Condition(asyncio.Lock()) # Single condition for both producers and consumers
